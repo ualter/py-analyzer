@@ -1,0 +1,332 @@
+
+image: none.jpeg
+
+stages:
+  - terraform-plan
+  - terraform
+  - deploy
+
+build:
+  stage: terraform
+  only:
+    - develop
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+
+
+deploy-services:
+  stage: deploy
+  only:
+    - develop
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: on_success
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_services
+
+deploy-repository:
+  stage: deploy
+  only:
+    - develop
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: on_success
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - export PROJECT=
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_repository
+
+deploy-efs:
+  stage: deploy
+  only:
+    - develop
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: on_success
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - export PROJECT=${PROJECT}
+    - export REGION=${REGION}
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_efs
+
+
+destroy-develop:
+  stage: terraform
+  only:
+    - develop
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e destroy
+
+
+build-prod-plan:
+  stage: terraform-plan
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  artifacts:
+    name: "terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan"
+    paths:
+    - terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    expire_in: 2h
+
+build-prod:
+  stage: terraform
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - ls -l terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  dependencies:
+    - build-prod-plan
+
+deploy-prod-services:
+  stage: deploy
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_services
+
+deploy-prod-repository:
+  stage: deploy
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_repository
+
+deploy-prod-efs:
+  stage: deploy
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - export PROJECT=${PROJECT}
+    - export REGION=${REGION}
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook_efs
+
+
+destroy-prod:
+  stage: terraform-plan
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e destroy
