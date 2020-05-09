@@ -8,12 +8,12 @@
 #
 #
 
+import os
 import yaml
 import json
 
-
 FILL={}
-FILL["stage"]="#dae9fc"
+FILL["stage"]="#f5f5f5"
 FILL["job"]="#dae8fc"
 FILL["terraform"]="#99ffcc"
 FILL["branch"]="#d5e8d4"
@@ -27,7 +27,7 @@ STROKE["branch"]="#82b366"
 STROKE["ansible"]="#82b366"
 
 IMAGE={}
-IMAGE["stage"]=""
+IMAGE["stage"]="https://www.dropbox.com/s/ldn0fxvt0ge6a0c/stage-logo.png?raw=1"
 IMAGE["job"]="https://www.dropbox.com/s/xinbwsjsh0ezi8n/job-logo.png?raw=1"
 IMAGE["terraform"]="https://www.dropbox.com/s/ngptqgmji59j3h7/terraform-logo-1.png?raw=1"
 IMAGE["branch"]="https://www.dropbox.com/s/vf0nzuvj8lr61u2/gitbranch-logo.png?raw=1"
@@ -43,14 +43,6 @@ def main():
 
 
 def loadYaml():   
-    #with open(".gitlab-ci.yml", 'r') as stream:
-    #    try:
-    #        print(yaml.safe_load(stream))
-    #    except yaml.YAMLError as exc:
-    #        print(exc)
-
-    # mydict={}
-
     with open(".gitlab-ci.yml", 'r') as file:
         documents = yaml.full_load(file)
 
@@ -59,18 +51,6 @@ def loadYaml():
         for item, doc in documents.items() :
             if item == "stages" :
                loadStages(drawio, doc)
-               #for stage in doc:
-               #    drawio[stage]={}
-               #    drawio[stage]["name"]=stage
-               #    drawio[stage]["type"]="stage"
-               #    drawio[stage]["stage"]=""
-               #    drawio[stage]["terraform"]=""
-               #    drawio[stage]["branch"]=""
-               #    drawio[stage]["ansible"]=""
-                   
-            elif  item == "image" :
-                  s = ""
-                  #print(item + ": " + doc)         
 
             elif isinstance(doc,dict):
                 drawio[item] = {}
@@ -79,70 +59,94 @@ def loadYaml():
                 drawio[item]["stage"]=drawio[doc["stage"]]["name"]
 
                 # Terraform Commands
-                terraformCommands=""
-                script = doc["script"]
-                for lineScript in script:
-                    if    "make -e init" in lineScript:
-                          if len(terraformCommands) > 0:
-                             terraformCommands=terraformCommands+","
-                          terraformCommands = terraformCommands + "init"
-                    elif "make -e plan" in lineScript:     
-                          if len(terraformCommands) > 0:
-                             terraformCommands=terraformCommands+","  
-                          terraformCommands = terraformCommands + "plan"
-                    elif "make -e apply" in lineScript:      
-                          if len(terraformCommands) > 0:
-                             terraformCommands=terraformCommands+","
-                          terraformCommands = terraformCommands + "apply"
-                    elif "make -e destroy" in lineScript:      
-                          if len(terraformCommands) > 0:
-                             terraformCommands=terraformCommands+","
-                          terraformCommands = terraformCommands + "destroy"            
-                drawio[item]["terraform"]=terraformCommands
+                loadTerraformCommands(drawio, item, doc)
 
                 # Git Branches Applied
-                branches=""
-                script = doc["only"]
-                for lineBranch in script:
-                    if len(branches) > 0:
-                        branches=branches+","
-                    branches = branches + lineBranch
-                drawio[item]["branch"]=branches
+                loadGitBranches(drawio, item, doc)
 
                 # Ansible
-                playbooks=""
-                script = doc["script"]
-                for lineScript in script:
-                    for playbook in PLAYBOOKS:
-                        if playbook in lineScript:
-                          if len(playbooks) > 0:
-                             playbooks=playbooks+","
-                          playbooks = playbooks + PLAYBOOKS[playbook]
-                drawio[item]["ansible"]=playbooks
+                loadAnsible(drawio, item, doc)
 
-        # Inserting the others in order the relationship works
-        listTerraformCommands=[]
-        listGitBranches=[]
-        listAnsiblePlaybook=[]
-        for name in drawio:
+        completeWihRelationShips(drawio)
+        writeFile(drawio)   
 
-            for str in drawio[name]["terraform"].split(","):
-                if str != "":
-                   listTerraformCommands.append(str)
 
-            for str in drawio[name]["branch"].split(","):
-                if str != "":
-                   listGitBranches.append(str)
+def loadStages(drawio, doc):
+      for stage in doc:
+         drawio[stage]={}
+         drawio[stage]["name"]=stage
+         drawio[stage]["type"]="stage"
+         drawio[stage]["stage"]=""
+         drawio[stage]["terraform"]=""
+         drawio[stage]["branch"]=""
+         drawio[stage]["ansible"]=""
 
-            for str in drawio[name]["ansible"].split(","):
-                if str != "":
-                   listAnsiblePlaybook.append(str)              
+def loadTerraformCommands(drawio, item, doc):
+      terraformCommands=""
+      script = doc["script"]
+      for lineScript in script:
+         if    "make -e init" in lineScript:
+               if len(terraformCommands) > 0:
+                  terraformCommands=terraformCommands+","
+               terraformCommands = terraformCommands + "init"
+         elif "make -e plan" in lineScript:     
+               if len(terraformCommands) > 0:
+                  terraformCommands=terraformCommands+","  
+               terraformCommands = terraformCommands + "plan"
+         elif "make -e apply" in lineScript:      
+               if len(terraformCommands) > 0:
+                  terraformCommands=terraformCommands+","
+               terraformCommands = terraformCommands + "apply"
+         elif "make -e destroy" in lineScript:      
+               if len(terraformCommands) > 0:
+                  terraformCommands=terraformCommands+","
+               terraformCommands = terraformCommands + "destroy"            
+      drawio[item]["terraform"]=terraformCommands        
 
-        listTerraformCommands = list(dict.fromkeys(listTerraformCommands))
-        listGitBranches       = list(dict.fromkeys(listGitBranches))
-        listAnsiblePlaybook   = list(dict.fromkeys(listAnsiblePlaybook))
+def loadGitBranches(drawio, item, doc):
+      branches=""
+      script = doc["only"]
+      for lineBranch in script:
+         if len(branches) > 0:
+            branches=branches+","
+         branches = branches + lineBranch
+      drawio[item]["branch"]=branches
 
-        for terra in listTerraformCommands:
+def loadAnsible(drawio, item, doc):
+      playbooks=""
+      script = doc["script"]
+      for lineScript in script:
+         for playbook in PLAYBOOKS:
+            if playbook in lineScript:
+               if len(playbooks) > 0:
+                  playbooks=playbooks+","
+               playbooks = playbooks + PLAYBOOKS[playbook]
+      drawio[item]["ansible"]=playbooks
+
+def completeWihRelationShips(drawio):
+      # Inserting the others in order the relationship works
+      listTerraformCommands=[]
+      listGitBranches=[]
+      listAnsiblePlaybook=[]
+      for name in drawio:
+
+         for str in drawio[name]["terraform"].split(","):
+               if str != "":
+                  listTerraformCommands.append(str)
+
+         for str in drawio[name]["branch"].split(","):
+               if str != "":
+                  listGitBranches.append(str)
+
+         for str in drawio[name]["ansible"].split(","):
+               if str != "":
+                  listAnsiblePlaybook.append(str)              
+
+      listTerraformCommands = list(dict.fromkeys(listTerraformCommands))
+      listGitBranches       = list(dict.fromkeys(listGitBranches))
+      listAnsiblePlaybook   = list(dict.fromkeys(listAnsiblePlaybook))
+
+      for terra in listTerraformCommands:
             drawio[terra]={}
             drawio[terra]["name"]=terra
             drawio[terra]["type"]="terraform"
@@ -151,41 +155,34 @@ def loadYaml():
             drawio[terra]["branch"]=""
             drawio[terra]["ansible"]=""
 
-        for git in listGitBranches:
-            drawio[git]={}
-            drawio[git]["name"]=git
-            drawio[git]["type"]="branch"
-            drawio[git]["stage"]=""
-            drawio[git]["terraform"]=""
-            drawio[git]["branch"]=""
-            drawio[git]["ansible"]=""
+      for git in listGitBranches:
+         drawio[git]={}
+         drawio[git]["name"]=git
+         drawio[git]["type"]="branch"
+         drawio[git]["stage"]=""
+         drawio[git]["terraform"]=""
+         drawio[git]["branch"]=""
+         drawio[git]["ansible"]=""
 
-        for ansible in listAnsiblePlaybook:
-            drawio[ansible]={}
-            drawio[ansible]["name"]=ansible
-            drawio[ansible]["type"]="ansible"
-            drawio[ansible]["stage"]=""
-            drawio[ansible]["terraform"]=""
-            drawio[ansible]["branch"]=""
-            drawio[ansible]["ansible"]=""    
+      for ansible in listAnsiblePlaybook:
+         drawio[ansible]={}
+         drawio[ansible]["name"]=ansible
+         drawio[ansible]["type"]="ansible"
+         drawio[ansible]["stage"]=""
+         drawio[ansible]["terraform"]=""
+         drawio[ansible]["branch"]=""
+         drawio[ansible]["ansible"]=""
 
-        writeFile(drawio)   
-
-
-def loadStages(drawio, doc):
-    for stage in doc:
-        drawio[stage]={}
-        drawio[stage]["name"]=stage
-        drawio[stage]["type"]="stage"
-        drawio[stage]["stage"]=""
-        drawio[stage]["terraform"]=""
-        drawio[stage]["branch"]=""
-        drawio[stage]["ansible"]=""
 
 def writeFile(drawio):
-
+   fileName="gitlab-ci.csv"
    header="name,type,stage,terraform,branch,ansible,fill,stroke,image"
-   f = open("gitlab-ci.csv", "w")
+
+   if os.path.exists(fileName):
+      os.remove(fileName)
+
+   f = open(fileName, "w")
+   writeLayoutHeader(f)
    f.write(header + "\n")
 
    for name in drawio:
@@ -207,7 +204,10 @@ def writeFile(drawio):
        f.write(line + "\n")
 
    f.close()
-       
 
+def writeLayoutHeader(f):
+   with open('layout.py') as layout:
+    for line in layout:
+       f.write(line)
 
 if __name__ == '__main__':    main()
