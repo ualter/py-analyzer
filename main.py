@@ -5,12 +5,14 @@
 #
 # pip install pyyaml
 # https://pyyaml.org/wiki/PyYAMLDocumentation
+# https://jgraph.github.io/drawio-tools/tools/csv.html
 #
 #
 
 import os
 import yaml
 import json
+import urllib
 
 FILL={}
 FILL["stage"]="#f5f5f5"
@@ -27,7 +29,7 @@ STROKE["branch"]="#82b366"
 STROKE["ansible"]="#82b366"
 
 IMAGE={}
-IMAGE["stage"]="https://www.dropbox.com/s/ldn0fxvt0ge6a0c/stage-logo.png?raw=1"
+IMAGE["stage"]="https://www.dropbox.com/s/ddf9xfjvete6xmv/stage-logo.png?raw=1"
 IMAGE["job"]="https://www.dropbox.com/s/xinbwsjsh0ezi8n/job-logo.png?raw=1"
 IMAGE["terraform"]="https://www.dropbox.com/s/ngptqgmji59j3h7/terraform-logo-1.png?raw=1"
 IMAGE["branch"]="https://www.dropbox.com/s/vf0nzuvj8lr61u2/gitbranch-logo.png?raw=1"
@@ -38,11 +40,16 @@ PLAYBOOKS["make -e run_playbook_repository"]="deploy-repository.yaml"
 PLAYBOOKS["make -e run_playbook_efs"]       ="deploy-efs.yaml"
 PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 
+HEADER="name,type,stage,terraform,branch,ansible,fill,stroke,image"
+
 def main():
+    print("\n*********************************************************")
     loadYaml()
+    print("*********************************************************\n")
 
 
-def loadYaml():   
+def loadYaml():
+    print("- Loading and Parsing .gitlab-ci.yml")   
     with open(".gitlab-ci.yml", 'r') as file:
         documents = yaml.full_load(file)
 
@@ -58,6 +65,8 @@ def loadYaml():
                 drawio[item]["type"]="job"
                 drawio[item]["stage"]=drawio[doc["stage"]]["name"]
 
+                print("  - Parsing Job " + item + " (Stage " + drawio[item]["stage"] + ")")
+
                 # Terraform Commands
                 loadTerraformCommands(drawio, item, doc)
 
@@ -68,11 +77,11 @@ def loadYaml():
                 loadAnsible(drawio, item, doc)
 
         completeWihRelationShips(drawio)
-        writeFile(drawio)   
-
+        writeFile(drawio)
 
 def loadStages(drawio, doc):
       for stage in doc:
+         print("  - Parsing Stage " + stage)
          drawio[stage]={}
          drawio[stage]["name"]=stage
          drawio[stage]["type"]="stage"
@@ -175,39 +184,53 @@ def completeWihRelationShips(drawio):
 
 
 def writeFile(drawio):
+   print("- CVS Writing...")
    fileName="gitlab-ci.csv"
-   header="name,type,stage,terraform,branch,ansible,fill,stroke,image"
+   fileNameNoLayout="gitlab-ci-nolayout.csv"
 
    if os.path.exists(fileName):
       os.remove(fileName)
+   if os.path.exists(fileNameNoLayout):
+      os.remove(fileNameNoLayout)   
 
-   f = open(fileName, "w")
+   f   = open(fileName, "w")
+   fnl = open(fileNameNoLayout, "w")
    writeLayoutHeader(f)
-   f.write(header + "\n")
+   f.write(HEADER + "\n")
+   fnl.write(HEADER + "\n")
 
    for name in drawio:
-       fill=FILL[drawio[name]["type"]]
-       stroke=STROKE[drawio[name]["type"]]
-       image=IMAGE[drawio[name]["type"]]
-
-       line =       drawio[name]["name"] + \
-              "," + drawio[name]["type"] + \
-              "," + drawio[name]["stage"] + \
-              ",\"" + drawio[name]["terraform"] + "\"" + \
-              ",\"" + drawio[name]["branch"]    + "\"" + \
-              "," + drawio[name]["ansible"] + \
-              "," + fill + \
-              "," + stroke + \
-              "," + image
-
-       print(line)
+       line = composeLine(name, drawio)
        f.write(line + "\n")
+       fnl.write(line + "\n")
 
    f.close()
+   print("- CVS File writen")
+
+def composeLine(name, drawio):
+    fill  =FILL[drawio[name]["type"]]
+    stroke=STROKE[drawio[name]["type"]]
+    image =IMAGE[drawio[name]["type"]]
+
+    line =       drawio[name]["name"] + \
+         ","   + drawio[name]["type"] + \
+         ","   + drawio[name]["stage"] + \
+         ",\"" + drawio[name]["terraform"] + "\"" + \
+         ",\"" + drawio[name]["branch"]    + "\"" + \
+         ","   + drawio[name]["ansible"] + \
+         ","   + fill + \
+         ","   + stroke + \
+         ","   + image
+    return line
 
 def writeLayoutHeader(f):
    with open('layout.py') as layout:
     for line in layout:
-       f.write(line)
+       f.write("#"+line)
+
+def loadLayoutHeader():
+   with open('layout.py') as f:
+        my_list = list(f)
+   return my_list    
 
 if __name__ == '__main__':    main()
