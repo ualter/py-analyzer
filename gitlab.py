@@ -41,41 +41,54 @@ PLAYBOOKS={}
 PLAYBOOKS["make -e run_playbook_repository"]="deploy-repository.yaml"
 PLAYBOOKS["make -e run_playbook_efs"]       ="deploy-efs.yaml"
 PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
+PLAYBOOKS["make -e run_playbook"]           ="deploy-services.yaml"
 
 HEADER="id,name,type,stage,when,terraform,branch,ansible,fill,stroke,image"
 
+LOG = logging.getLogger("app." + __name__)
+LOG.setLevel(logging.WARN)
 
 def startAnalysis(gitlabFile):
-    print("\n*********************************************************")
+    print("\n**************************************************************************************")
+    print(" ")
+    print("   ____ _ _   _          _      ____ ___        _                _           _      ")
+    print("  / ___(_) |_| |    __ _| |__  / ___|_ _|      / \   _ __   __ _| |_   _ ___(_)___  ")
+    print(" | |  _| | __| |   / _` | '_ \| |    | |_____ / _ \ | '_ \ / _` | | | | / __| / __| ")
+    print(" | |_| | | |_| |__| (_| | |_) | |___ | |_____/ ___ \| | | | (_| | | |_| \__ \ \__ \ ")
+    print("  \____|_|\__|_____\__,_|_.__/ \____|___|   /_/   \_\_| |_|\__,_|_|\__, |___/_|___/ ")
+    print("                                                                   |___/            ")
+    print("\n**************************************************************************************")
+    print(" ")
     loadYaml(gitlabFile)
-    print("*********************************************************\n")
+    print (" ----> Done!")
+    print("\n**************************************************************************************\n")
 
 def loadYaml(gitlabFile):
-    print("- Loading and Parsing " + gitlabFile)   
+    LOG.info("- Loading and Parsing " + gitlabFile)   
     with open(gitlabFile, 'r') as file:
         documents = yaml.load(file, Loader=yaml.FullLoader)
 
         drawio={}
-        index=0
+        index_job=0
 
         for item, doc in documents.items() :
             if item == "stages" :
                loadStages(drawio, doc)
 
             elif isinstance(doc,dict):
-                index += 1
-                id_job = item + "-" + str(index) 
+                index_job += 1
+                id_job = "job-" + item + "-" + str(index_job) 
                 drawio[id_job] = {}
                 drawio[id_job]["id"]=id_job
                 drawio[id_job]["name"]=item
                 drawio[id_job]["type"]="job"
-                drawio[id_job]["stage"]=drawio[doc["stage"]]["name"]
+                drawio[id_job]["stage"]=drawio[doc["stage"]]["id"]
                 if  'when' in doc:
                     drawio[id_job]["when"]=doc["when"]
                 else:    
                     drawio[id_job]["when"]=""
 
-                print("  - Parsing Job " + id_job + " (Stage " + drawio[id_job]["stage"] + ")")
+                logging.info("  - Parsing Job " + id_job + " (Stage " + drawio[id_job]["stage"] + ")")
 
                 # Terraform Commands
                 loadTerraformCommands(id_job, drawio, item, doc)
@@ -91,9 +104,9 @@ def loadYaml(gitlabFile):
 
 def loadStages(drawio, doc):
       for stage in doc:
-         print("  - Parsing Stage " + stage)
+         logging.info("  - Parsing Stage " + stage)
          drawio[stage]={}
-         drawio[stage]["id"]=stage
+         drawio[stage]["id"]="stage-" + stage
          drawio[stage]["name"]=stage
          drawio[stage]["type"]="stage"
          drawio[stage]["stage"]=""
@@ -109,39 +122,41 @@ def loadTerraformCommands(id_job, drawio, item, doc):
          if    "make -e init" in lineScript:
                if len(terraformCommands) > 0:
                   terraformCommands=terraformCommands+","
-               terraformCommands = terraformCommands + "init"
+               terraformCommands = terraformCommands + "terraform-init"
          elif "make -e plan" in lineScript:     
                if len(terraformCommands) > 0:
                   terraformCommands=terraformCommands+","  
-               terraformCommands = terraformCommands + "plan"
+               terraformCommands = terraformCommands + "terraform-plan"
          elif "make -e apply" in lineScript:      
                if len(terraformCommands) > 0:
                   terraformCommands=terraformCommands+","
-               terraformCommands = terraformCommands + "apply"
+               terraformCommands = terraformCommands + "terraform-apply"
          elif "make -e destroy" in lineScript:      
                if len(terraformCommands) > 0:
                   terraformCommands=terraformCommands+","
-               terraformCommands = terraformCommands + "destroy"            
+               terraformCommands = terraformCommands + "terraform-destroy"            
       drawio[id_job]["terraform"]=terraformCommands        
 
 def loadGitBranches(id_job, drawio, item, doc):
       branches=""
-      script = doc["only"]
-      for lineBranch in script:
-         if len(branches) > 0:
-            branches=branches+","
-         branches = branches + lineBranch
+      if "only" in doc:
+         script = doc["only"]
+         for lineBranch in script:
+            if len(branches) > 0:
+               branches=branches+","
+            branches = branches + "git-"+lineBranch
       drawio[id_job]["branch"]=branches
 
 def loadAnsible(id_job, drawio, item, doc):
       playbooks=""
-      script = doc["script"]
-      for lineScript in script:
-         for playbook in PLAYBOOKS:
-            if playbook in lineScript:
-               if len(playbooks) > 0:
-                  playbooks=playbooks+","
-               playbooks = playbooks + PLAYBOOKS[playbook]
+      if "script" in doc:
+         script = doc["script"]
+         for lineScript in script:
+            for playbook in PLAYBOOKS:
+               if playbook in lineScript:
+                  if len(playbooks) > 0:
+                     playbooks=playbooks+","
+                  playbooks = playbooks + "ansible-"+PLAYBOOKS[playbook]
       drawio[id_job]["ansible"]=playbooks
 
 def completeWihRelationShips(drawio):
@@ -200,7 +215,7 @@ def completeWihRelationShips(drawio):
 
 
 def writeFile(drawio, gitlabFile):
-   print("- CVS Writing...")
+   logging.info("- CVS Writing...")
    fileName=gitlabFile.replace(".yaml","").replace(".yml","") + ".csv"
    fileNameNoLayout=gitlabFile.replace(".yaml","").replace(".yml","")+"-nolayout.csv"
 
@@ -221,7 +236,7 @@ def writeFile(drawio, gitlabFile):
        fnl.write(line + "\n")
 
    f.close()
-   print("- CVS File writen")
+   logging.info("- CVS File writen")
 
 def composeLine(name, drawio):
     fill   = FILL  [drawio[name]["type"]]

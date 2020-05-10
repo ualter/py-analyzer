@@ -1,0 +1,200 @@
+
+stages:
+  - ARMAGEDON
+  - plan
+  - build
+  - deploy_service
+  - deploy_conf
+  - deploy_wars
+
+
+test-develop:
+  stage: plan
+  only:
+    - develop
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+
+
+plan:
+  stage: plan
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "uat"
+    - if: $CI_COMMIT_REF_NAME == "pp"
+    - if: $CI_COMMIT_REF_NAME == "prod"
+  variables:
+    ENV: ${CI_COMMIT_REF_NAME}
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  artifacts:
+    name: "terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan"
+    paths:
+      - terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    expire_in: 1000yrs
+
+build:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "uat"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "pp"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "prod"
+      when: manual
+  variables:
+    ENV: ${CI_COMMIT_REF_NAME}
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - ls -l terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  dependencies:
+    - plan
+
+deploy_service:
+  stage: deploy_service
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "uat"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "pp"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "prod"
+      when: manual
+  variables:
+    ENV: ${CI_COMMIT_REF_NAME}
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export ANSIBLE_USER=$(urlencode "${GIT_ANSIBLE_USER}")
+    - export ANSIBLE_PASS=$(urlencode "${GIT_ANSIBLE_PASS}")
+    - export SERVICE_NAME=$(urlencode "${SERVICE_NAME}")
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook EC2_INSTANCE_FILTERS='tag:Environment=${CI_COMMIT_REF_NAME},tag:Project=${SERVICE_NAME},tag:Name=${SERVICE_NAME}-in-${SERVICE_NAME}-${CI_COMMIT_REF_NAME}-eu-central-1*' SSH_USER='ec2-user' PLAYBOOK='ansible/deploy-service.yaml'
+
+
+# deploy_conf:
+#   stage: deploy_conf
+#   rules:
+#     - if: $CI_COMMIT_REF_NAME == "uat"
+#       when: on_success
+#     - if: $CI_COMMIT_REF_NAME == "pp"
+#       when: on_success
+#     - if: $CI_COMMIT_REF_NAME == "prod"
+#       when: manual
+#   variables:
+#     ENV: ${CI_COMMIT_REF_NAME}
+#   allow_failure: false
+#   tags:
+#     - admin
+#     - shared
+#   environment:
+#     name: ${CI_COMMIT_REF_NAME}
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export ANSIBLE_USER=$(urlencode "${GIT_ANSIBLE_USER}")
+#     - export ANSIBLE_PASS=$(urlencode "${GIT_ANSIBLE_PASS}")
+#     - export SERVICE_NAME=$(urlencode "${SERVICE_NAME}")
+#     - mkdir ${HOME}/.ssh/
+#     - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+#     - chmod 0600 ${HOME}/.ssh/id_rsa
+#     - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+#     - make -e run_playbook EC2_INSTANCE_FILTERS='tag:Environment=${CI_COMMIT_REF_NAME},tag:Project=${SERVICE_NAME},tag:Name=${SERVICE_NAME}-in-${SERVICE_NAME}-${CI_COMMIT_REF_NAME}-eu-central-1*' SSH_USER='ec2-user' PLAYBOOK='ansible/deploy-conf.yaml'
+
+deploy_wars:
+  stage: deploy_wars
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "uat"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "pp"
+      when: on_success
+    - if: $CI_COMMIT_REF_NAME == "prod"
+      when: on_success
+  variables:
+    ENV: ${CI_COMMIT_REF_NAME}
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export ANSIBLE_USER=$(urlencode "${GIT_ANSIBLE_USER}")
+    - export ANSIBLE_PASS=$(urlencode "${GIT_ANSIBLE_PASS}")
+    - export SERVICE_NAME=$(urlencode "${SERVICE_NAME}")
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - make -e run_playbook EC2_INSTANCE_FILTERS='tag:Environment=${CI_COMMIT_REF_NAME},tag:Project=${SERVICE_NAME},tag:Name=${SERVICE_NAME}-in-${SERVICE_NAME}-${CI_COMMIT_REF_NAME}-eu-central-1*' SSH_USER='ec2-user' PLAYBOOK='ansible/deploy-application.yaml'
+
+ARMAGEDON:
+  stage: ARMAGEDON
+  only:
+    - uat
+    - pp
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  variables:
+    ENV: ${CI_COMMIT_REF_NAME}
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - make -e init
+    - make -e destroy
