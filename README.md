@@ -1,1 +1,1 @@
-Py-Analyzer
+Py-Analyzer v0.3

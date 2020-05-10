@@ -112,7 +112,6 @@ class GitLab:
             for stage in doc:
                GitLab.LOG.info("  - Parsing Stage " + stage)
                id_stage = "stage-" + stage
-               print(id_stage)
                drawio[id_stage]={}
                drawio[id_stage]["id"]=id_stage
                drawio[id_stage]["name"]=stage
