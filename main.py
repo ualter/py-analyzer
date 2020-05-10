@@ -12,7 +12,8 @@
 import os
 import yaml
 import json
-import urllib
+import logging
+import sys
 
 FILL={}
 FILL["stage"]="#f5f5f5"
@@ -42,15 +43,31 @@ PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 
 HEADER="name,type,stage,terraform,branch,ansible,fill,stroke,image"
 
+
 def main():
+    print(len(sys.argv))
+    print(sys.argv[0])
+    print(sys.argv[1])
+    if len(sys.argv) < 2 :
+         print ("  ")
+         print ("Missing argument! Check:")
+         print ("Syntax: py-analyzer.py [Gitlab CI yaml file]")
+         print ("  ")
+         print ("  Example:")
+         print ("    py-analyzer.py .gitlab-ci.yaml")
+         print (" ")
+         sys.exit()
+    else:
+         gitlabFile = sys.argv[1]     
+            
     print("\n*********************************************************")
-    loadYaml()
+    loadYaml(gitlabFile)
     print("*********************************************************\n")
 
 
-def loadYaml():
-    print("- Loading and Parsing .gitlab-ci.yml")   
-    with open(".gitlab-ci.yml", 'r') as file:
+def loadYaml(gitlabFile):
+    print("- Loading and Parsing " + gitlabFile)   
+    with open(gitlabFile, 'r') as file:
         documents = yaml.full_load(file)
 
         drawio={}
@@ -77,7 +94,7 @@ def loadYaml():
                 loadAnsible(drawio, item, doc)
 
         completeWihRelationShips(drawio)
-        writeFile(drawio)
+        writeFile(drawio, gitlabFile)
 
 def loadStages(drawio, doc):
       for stage in doc:
@@ -183,10 +200,10 @@ def completeWihRelationShips(drawio):
          drawio[ansible]["ansible"]=""
 
 
-def writeFile(drawio):
+def writeFile(drawio, gitlabFile):
    print("- CVS Writing...")
-   fileName="gitlab-ci.csv"
-   fileNameNoLayout="gitlab-ci-nolayout.csv"
+   fileName=gitlabFile.replace(".yaml","").replace(".yml","") + ".csv"
+   fileNameNoLayout=gitlabFile.replace(".yaml","").replace(".yml","")+"-nolayout.csv"
 
    if os.path.exists(fileName):
       os.remove(fileName)
