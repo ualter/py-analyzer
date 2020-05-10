@@ -41,7 +41,6 @@ PLAYBOOKS={}
 PLAYBOOKS["make -e run_playbook_repository"]="deploy-repository.yaml"
 PLAYBOOKS["make -e run_playbook_efs"]       ="deploy-efs.yaml"
 PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
-PLAYBOOKS["make -e run_playbook"]           ="deploy-services.yaml"
 
 HEADER="id,name,type,stage,when,terraform,branch,ansible,fill,stroke,image"
 
@@ -152,12 +151,33 @@ def loadAnsible(id_job, drawio, item, doc):
       if "script" in doc:
          script = doc["script"]
          for lineScript in script:
+            found = False
             for playbook in PLAYBOOKS:
                if playbook in lineScript:
                   if len(playbooks) > 0:
                      playbooks=playbooks+","
                   playbooks = playbooks + "ansible-"+PLAYBOOKS[playbook]
+                  found = True
+            if not found:
+               playbook = lookupAnsiblePlaybook(lineScript)
+               if playbook != "":
+                  if len(playbooks) > 0:
+                        playbooks=playbooks+","
+                  playbooks = playbooks + "ansible-"+playbook      
       drawio[id_job]["ansible"]=playbooks
+
+def lookupAnsiblePlaybook(str):
+      index1 = str.find("PLAYBOOK=")
+      index2 = str.find(".yml",index1)
+      if index1 > 0:
+         if index2 < 0:
+            index2 = str.find(".yaml",index1)  
+            index2+=len("yaml")
+         else:
+            index2+=len("yml")
+         playbook=str[index1:index2+1].replace("'","").split("=")[1].split("/")[1]
+         return playbook
+      return ""   
 
 def completeWihRelationShips(drawio):
       # Inserting the others in order the relationship works
