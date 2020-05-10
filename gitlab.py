@@ -45,23 +45,10 @@ PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 HEADER="id,name,type,stage,when,terraform,branch,ansible,fill,stroke,image"
 
 
-def main():
-    if len(sys.argv) < 2 :
-         print ("  ")
-         print ("Missing argument! Check:")
-         print ("Syntax: py-analyzer.py [Gitlab CI yaml file]")
-         print ("  ")
-         print ("  Example:")
-         print ("    py-analyzer.py .gitlab-ci.yaml")
-         print (" ")
-         sys.exit()
-    else:
-         gitlabFile = sys.argv[1]     
-            
+def startAnalysis(gitlabFile):
     print("\n*********************************************************")
     loadYaml(gitlabFile)
     print("*********************************************************\n")
-
 
 def loadYaml(gitlabFile):
     print("- Loading and Parsing " + gitlabFile)   
@@ -265,6 +252,4 @@ def writeLayoutHeader(f):
 def loadLayoutHeader():
    with open('layout.py') as f:
         my_list = list(f)
-   return my_list    
-
-if __name__ == '__main__':    main()
+   return my_list
