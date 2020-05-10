@@ -1,21 +1,19 @@
-connect: {"from": "stage",     "to": "name", "invert": true, "style": "curved=1;fontSize=11;"}
-connect: {"from": "terraform", "to": "name",                 "style": "curved=1;fontSize=11;"}
-connect: {"from": "branch",    "to": "name",                 "style": "curved=1;fontSize=11;"}
-connect: {"from": "ansible",   "to": "name",                 "style": "curved=1;fontSize=11;"}
+connect: {"from": "stage",     "to": "id", "invert": true, "style": "curved=1;fontSize=11;"}
+connect: {"from": "terraform", "to": "id",                 "style": "curved=1;fontSize=11;"}
+connect: {"from": "branch",    "to": "id",                 "style": "curved=1;fontSize=11;"}
+connect: {"from": "ansible",   "to": "id",                 "style": "curved=1;fontSize=11;"}
 
 # Node label with placeholders and HTML.
 # Default is '%name_of_first_column%'.
 
 # label: %label%<br><i style="color:gray;">%type%</i><br><a href="mailto:%email%">Email</a>
 # label: %label%<br><i style="color:gray;">%type%</i>
-label: %label%<br>(%name%)<br><i style="color:gray;">%type%</i>
-
-
+label: %name%<br><b><i style="color:gray;">%type%</i></b>
 
 # Node style (placeholders are replaced once).
 # Default is the current style for nodes.
 
-style: label;image=%image%;whiteSpace=wrap;html=1;rounded=1;fillColor=%fill%;strokeColor=%stroke%;
+style: label;image=%image%;whiteSpace=wrap;html=1;rounded=1;fillColor=%fill%;strokeColor=%stroke%;fontColor=#000000
 
 # Node width. Possible value is a number (in px), auto or an @ sign followed by a column
 # name that contains the value for the width. Default is auto.

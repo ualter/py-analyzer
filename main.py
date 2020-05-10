@@ -35,19 +35,17 @@ IMAGE["job"]="https://www.dropbox.com/s/xinbwsjsh0ezi8n/job-logo.png?raw=1"
 IMAGE["terraform"]="https://www.dropbox.com/s/ngptqgmji59j3h7/terraform-logo-1.png?raw=1"
 IMAGE["branch"]="https://www.dropbox.com/s/vf0nzuvj8lr61u2/gitbranch-logo.png?raw=1"
 IMAGE["ansible"]="https://www.dropbox.com/s/louj6pc6a3xb4gi/ansible-logo-1.png?raw=1"
+IMAGE["manual"]="https://www.dropbox.com/s/gjw7xqd7de23wmp/manual-logo.png?raw=1"
 
 PLAYBOOKS={}
 PLAYBOOKS["make -e run_playbook_repository"]="deploy-repository.yaml"
 PLAYBOOKS["make -e run_playbook_efs"]       ="deploy-efs.yaml"
 PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 
-HEADER="name,label,type,stage,terraform,branch,ansible,fill,stroke,image"
+HEADER="id,name,type,stage,when,terraform,branch,ansible,fill,stroke,image"
 
 
 def main():
-    print(len(sys.argv))
-    print(sys.argv[0])
-    print(sys.argv[1])
     if len(sys.argv) < 2 :
          print ("  ")
          print ("Missing argument! Check:")
@@ -68,10 +66,10 @@ def main():
 def loadYaml(gitlabFile):
     print("- Loading and Parsing " + gitlabFile)   
     with open(gitlabFile, 'r') as file:
-        documents = yaml.load(file)
+        documents = yaml.load(file, Loader=yaml.FullLoader)
 
         drawio={}
-        index=1
+        index=0
 
         for item, doc in documents.items() :
             if item == "stages" :
@@ -79,22 +77,27 @@ def loadYaml(gitlabFile):
 
             elif isinstance(doc,dict):
                 index += 1
-                drawio[item] = {}
-                drawio[item]["name"]=item+"-"+str(index)
-                drawio[item]["label"]=item
-                drawio[item]["type"]="job"
-                drawio[item]["stage"]=drawio[doc["stage"]]["name"]
+                id_job = item + "-" + str(index) 
+                drawio[id_job] = {}
+                drawio[id_job]["id"]=id_job
+                drawio[id_job]["name"]=item
+                drawio[id_job]["type"]="job"
+                drawio[id_job]["stage"]=drawio[doc["stage"]]["name"]
+                if  'when' in doc:
+                    drawio[id_job]["when"]=doc["when"]
+                else:    
+                    drawio[id_job]["when"]=""
 
-                print("  - Parsing Job " + item + " (Stage " + drawio[item]["stage"] + ")")
+                print("  - Parsing Job " + id_job + " (Stage " + drawio[id_job]["stage"] + ")")
 
                 # Terraform Commands
-                loadTerraformCommands(drawio, item, doc)
+                loadTerraformCommands(id_job, drawio, item, doc)
 
                 # Git Branches Applied
-                loadGitBranches(drawio, item, doc)
+                loadGitBranches(id_job, drawio, item, doc)
 
                 # Ansible
-                loadAnsible(drawio, item, doc)
+                loadAnsible(id_job, drawio, item, doc)
 
         completeWihRelationShips(drawio)
         writeFile(drawio, gitlabFile)
@@ -103,15 +106,16 @@ def loadStages(drawio, doc):
       for stage in doc:
          print("  - Parsing Stage " + stage)
          drawio[stage]={}
+         drawio[stage]["id"]=stage
          drawio[stage]["name"]=stage
-         drawio[stage]["label"]=stage
          drawio[stage]["type"]="stage"
          drawio[stage]["stage"]=""
+         drawio[stage]["when"]=""
          drawio[stage]["terraform"]=""
          drawio[stage]["branch"]=""
          drawio[stage]["ansible"]=""
 
-def loadTerraformCommands(drawio, item, doc):
+def loadTerraformCommands(id_job, drawio, item, doc):
       terraformCommands=""
       script = doc["script"]
       for lineScript in script:
@@ -131,18 +135,18 @@ def loadTerraformCommands(drawio, item, doc):
                if len(terraformCommands) > 0:
                   terraformCommands=terraformCommands+","
                terraformCommands = terraformCommands + "destroy"            
-      drawio[item]["terraform"]=terraformCommands        
+      drawio[id_job]["terraform"]=terraformCommands        
 
-def loadGitBranches(drawio, item, doc):
+def loadGitBranches(id_job, drawio, item, doc):
       branches=""
       script = doc["only"]
       for lineBranch in script:
          if len(branches) > 0:
             branches=branches+","
          branches = branches + lineBranch
-      drawio[item]["branch"]=branches
+      drawio[id_job]["branch"]=branches
 
-def loadAnsible(drawio, item, doc):
+def loadAnsible(id_job, drawio, item, doc):
       playbooks=""
       script = doc["script"]
       for lineScript in script:
@@ -151,23 +155,21 @@ def loadAnsible(drawio, item, doc):
                if len(playbooks) > 0:
                   playbooks=playbooks+","
                playbooks = playbooks + PLAYBOOKS[playbook]
-      drawio[item]["ansible"]=playbooks
+      drawio[id_job]["ansible"]=playbooks
 
 def completeWihRelationShips(drawio):
       # Inserting the others in order the relationship works
       listTerraformCommands=[]
       listGitBranches=[]
       listAnsiblePlaybook=[]
-      for name in drawio:
 
+      for name in drawio:
          for str in drawio[name]["terraform"].split(","):
                if str != "":
                   listTerraformCommands.append(str)
-
          for str in drawio[name]["branch"].split(","):
                if str != "":
                   listGitBranches.append(str)
-
          for str in drawio[name]["ansible"].split(","):
                if str != "":
                   listAnsiblePlaybook.append(str)              
@@ -178,30 +180,33 @@ def completeWihRelationShips(drawio):
 
       for terra in listTerraformCommands:
             drawio[terra]={}
+            drawio[terra]["id"]=terra
             drawio[terra]["name"]=terra
-            drawio[terra]["label"]=terra
             drawio[terra]["type"]="terraform"
             drawio[terra]["stage"]=""
+            drawio[terra]["when"]=""
             drawio[terra]["terraform"]=""
             drawio[terra]["branch"]=""
             drawio[terra]["ansible"]=""
 
       for git in listGitBranches:
          drawio[git]={}
+         drawio[git]["id"]=git
          drawio[git]["name"]=git
-         drawio[git]["label"]=git
          drawio[git]["type"]="branch"
          drawio[git]["stage"]=""
+         drawio[git]["when"]=""
          drawio[git]["terraform"]=""
          drawio[git]["branch"]=""
          drawio[git]["ansible"]=""
 
       for ansible in listAnsiblePlaybook:
          drawio[ansible]={}
+         drawio[ansible]["id"]=ansible
          drawio[ansible]["name"]=ansible
-         drawio[ansible]["label"]=ansible
          drawio[ansible]["type"]="ansible"
          drawio[ansible]["stage"]=""
+         drawio[ansible]["when"]=""
          drawio[ansible]["terraform"]=""
          drawio[ansible]["branch"]=""
          drawio[ansible]["ansible"]=""
@@ -232,14 +237,18 @@ def writeFile(drawio, gitlabFile):
    print("- CVS File writen")
 
 def composeLine(name, drawio):
-    fill  =FILL[drawio[name]["type"]]
-    stroke=STROKE[drawio[name]["type"]]
-    image =IMAGE[drawio[name]["type"]]
+    fill   = FILL  [drawio[name]["type"]]
+    stroke = STROKE[drawio[name]["type"]]
+    image  = IMAGE [drawio[name]["type"]]
 
-    line =       drawio[name]["name"] + \
-         ","   + drawio[name]["label"] + \
+    if drawio[name]["when"] == "manual":
+       image = IMAGE["manual"]
+
+    line =       drawio[name]["id"] + \
+         ","   + drawio[name]["name"] + \
          ","   + drawio[name]["type"] + \
          ","   + drawio[name]["stage"] + \
+         ","   + drawio[name]["when"] + \
          ",\"" + drawio[name]["terraform"] + "\"" + \
          ",\"" + drawio[name]["branch"]    + "\"" + \
          ","   + drawio[name]["ansible"] + \
