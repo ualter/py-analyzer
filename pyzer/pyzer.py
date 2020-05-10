@@ -17,11 +17,14 @@ import sys
 import gitlab as G
 
 
-class PyAnalyzer:
+class Pyzer:
      LOG = logging.getLogger("app." + __name__)
      LOG.setLevel(logging.INFO)
 
      def __init__(self):
+          if not os.path.exists("log"):
+             os.makedirs("log")
+
           rootLogger = logging.getLogger()
           logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
 
@@ -61,4 +64,4 @@ class PyAnalyzer:
 
 
 if __name__ == '__main__':
-    pyAnalyzer = PyAnalyzer()
+    pyzer = Pyzer()
