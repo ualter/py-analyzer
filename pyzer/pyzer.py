@@ -14,7 +14,8 @@ import yaml
 import json
 import logging
 import sys
-import gitlab as G
+from pyzer.gitlab import GitLab
+#from gitlab import GitLab
 
 
 class Pyzer:
@@ -55,7 +56,7 @@ class Pyzer:
                type = sys.argv[1]
                file = sys.argv[2]     
           if type == "-gitlab":   
-               gitlab = G.GitLab()     
+               gitlab = GitLab()     
                gitlab.startAnalysis(file)
           else:
                print (" ")

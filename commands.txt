@@ -1,0 +1,15 @@
+
+# Release package to distribute
+python setup.py sdist
+
+# Release package locally
+pip install .
+
+# Release to PYPI Repository
+twine upload dist/*
+
+# Install it
+pip install pyzer --upgrade
+
+# Install locallyt
+pip install .

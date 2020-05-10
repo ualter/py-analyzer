@@ -15,7 +15,6 @@ import json
 import logging
 import sys
 
-
 class GitLab:
 
       FILL={}
@@ -89,7 +88,7 @@ class GitLab:
                      drawio[id_job]["id"]=id_job
                      drawio[id_job]["name"]=item
                      drawio[id_job]["type"]="job"
-                     drawio[id_job]["stage"]=drawio[doc["stage"]]["id"]
+                     drawio[id_job]["stage"]=drawio["stage-" + doc["stage"]]["id"]
                      if  'when' in doc:
                         drawio[id_job]["when"]=doc["when"]
                      else:    
@@ -112,15 +111,17 @@ class GitLab:
       def loadStages(self, drawio, doc):
             for stage in doc:
                GitLab.LOG.info("  - Parsing Stage " + stage)
-               drawio[stage]={}
-               drawio[stage]["id"]="stage-" + stage
-               drawio[stage]["name"]=stage
-               drawio[stage]["type"]="stage"
-               drawio[stage]["stage"]=""
-               drawio[stage]["when"]=""
-               drawio[stage]["terraform"]=""
-               drawio[stage]["branch"]=""
-               drawio[stage]["ansible"]=""
+               id_stage = "stage-" + stage
+               print(id_stage)
+               drawio[id_stage]={}
+               drawio[id_stage]["id"]=id_stage
+               drawio[id_stage]["name"]=stage
+               drawio[id_stage]["type"]="stage"
+               drawio[id_stage]["stage"]=""
+               drawio[id_stage]["when"]=""
+               drawio[id_stage]["terraform"]=""
+               drawio[id_stage]["branch"]=""
+               drawio[id_stage]["ansible"]=""
 
       def loadTerraformCommands(self, id_job, drawio, item, doc):
             terraformCommands=""
@@ -288,9 +289,50 @@ class GitLab:
          return line
 
       def writeLayoutHeader(self, f):
-         with open('layout.py') as layout:
-            for line in layout:
-               f.write("#"+line)
+         f.write("#" + "connect: {\"from\": \"stage\",     \"to\": \"id\", \"invert\": true, \"style\": \"curved=1;fontSize=11;\"}\n")
+         f.write("#" + "connect: {\"from\": \"terraform\", \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
+         f.write("#" + "connect: {\"from\": \"branch\",    \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
+         f.write("#" + "connect: {\"from\": \"ansible\",   \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
+         f.write("#" + "# Node label with placeholders and HTML.\n")
+         f.write("#" + "# Default is '%name_of_first_column%'.\n")
+         f.write("#" + "# label: %label%<br><i style=\"color:gray;\">%type%</i><br><a href=\"mailto:%email%\">Email</a>\n")
+         f.write("#" + "# label: %label%<br><i style=\"color:gray;\">%type%</i>\n")
+         f.write("#" + "label: %name%<br><b><i style=\"color:gray;\">%type%</i></b>\n")
+         f.write("#" + "# Node style (placeholders are replaced once).\n")
+         f.write("#" + "# Default is the current style for nodes.\n")
+         f.write("#" + "style: label;image=%image%;whiteSpace=wrap;html=1;rounded=1;fillColor=%fill%;strokeColor=%stroke%;fontColor=#000000\n")
+         f.write("#" + "# Node width. Possible value is a number (in px), auto or an @ sign followed by a column\n")
+         f.write("#" + "# name that contains the value for the width. Default is auto.\n")
+         f.write("#" + "width: auto\n")
+         f.write("#" + "# Node height. Possible value is a number (in px), auto or an @ sign followed by a column\n")
+         f.write("#" + "# name that contains the value for the height. Default is auto.\n")
+         f.write("#" + "height: auto\n")
+         f.write("#" + "# Padding for autosize. Default is 0.\n")
+         f.write("#" + "padding: 0\n")
+         f.write("#" + "# Name of layout. Possible values are auto, none, verticaltree, horizontaltree,\n")
+         f.write("#" + "# verticalflow, horizontalflow, organic, circle. Default is auto.\n")
+         f.write("#" + "layout: verticalflow\n")
+         f.write("#" + "# Comma-separated list of ignored columns for metadata. (These can be\n")
+         f.write("#" + "# used for connections and styles but will not be added as metadata.)\n")
+         f.write("#" + "ignore: image, fill, stroke\n")
+         f.write("#" + "# Node x-coordinate. Possible value is a column name. Default is empty. Layouts will\n")
+         f.write("#" + "# override this value.\n")
+         f.write("#" + "left: \n")
+         f.write("#" + "# Node y-coordinate. Possible value is a column name. Default is empty. Layouts will\n")
+         f.write("#" + "# override this value.\n")
+         f.write("#" + "top: \n")
+         f.write("#" + "# Node width. Possible value is a number (in px), auto or an @ sign followed by a column\n")
+         f.write("#" + "# name that contains the value for the width. Default is auto.\n")
+         f.write("#" + "width: auto\n")
+         f.write("#" + "# Node height. Possible value is a number (in px), auto or an @ sign followed by a column\n")
+         f.write("#" + "# name that contains the value for the height. Default is auto.\n")
+         f.write("#" + "height: auto\n")
+         f.write("#" + "# Parent style for nodes with child nodes (placeholders are replaced once).\n")
+         f.write("#" + "parentstyle: swimlane;whiteSpace=wrap;html=1;childLayout=stackLayout;horizontal=1;horizontalStack=0;resizeParent=1;resizeLast=0;collapsible=1;\n")
+
+         #with open('layout.py') as layout:
+         #   for line in layout:
+         #      f.write("#"+line)
 
       def loadLayoutHeader(self):
          with open('layout.py') as f:
