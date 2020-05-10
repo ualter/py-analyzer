@@ -41,7 +41,7 @@ PLAYBOOKS["make -e run_playbook_repository"]="deploy-repository.yaml"
 PLAYBOOKS["make -e run_playbook_efs"]       ="deploy-efs.yaml"
 PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 
-HEADER="name,type,stage,terraform,branch,ansible,fill,stroke,image"
+HEADER="name,label,type,stage,terraform,branch,ansible,fill,stroke,image"
 
 
 def main():
@@ -68,17 +68,20 @@ def main():
 def loadYaml(gitlabFile):
     print("- Loading and Parsing " + gitlabFile)   
     with open(gitlabFile, 'r') as file:
-        documents = yaml.full_load(file)
+        documents = yaml.load(file)
 
         drawio={}
+        index=1
 
         for item, doc in documents.items() :
             if item == "stages" :
                loadStages(drawio, doc)
 
             elif isinstance(doc,dict):
+                index += 1
                 drawio[item] = {}
-                drawio[item]["name"]=item
+                drawio[item]["name"]=item+"-"+str(index)
+                drawio[item]["label"]=item
                 drawio[item]["type"]="job"
                 drawio[item]["stage"]=drawio[doc["stage"]]["name"]
 
@@ -101,6 +104,7 @@ def loadStages(drawio, doc):
          print("  - Parsing Stage " + stage)
          drawio[stage]={}
          drawio[stage]["name"]=stage
+         drawio[stage]["label"]=stage
          drawio[stage]["type"]="stage"
          drawio[stage]["stage"]=""
          drawio[stage]["terraform"]=""
@@ -175,6 +179,7 @@ def completeWihRelationShips(drawio):
       for terra in listTerraformCommands:
             drawio[terra]={}
             drawio[terra]["name"]=terra
+            drawio[terra]["label"]=terra
             drawio[terra]["type"]="terraform"
             drawio[terra]["stage"]=""
             drawio[terra]["terraform"]=""
@@ -184,6 +189,7 @@ def completeWihRelationShips(drawio):
       for git in listGitBranches:
          drawio[git]={}
          drawio[git]["name"]=git
+         drawio[git]["label"]=git
          drawio[git]["type"]="branch"
          drawio[git]["stage"]=""
          drawio[git]["terraform"]=""
@@ -193,6 +199,7 @@ def completeWihRelationShips(drawio):
       for ansible in listAnsiblePlaybook:
          drawio[ansible]={}
          drawio[ansible]["name"]=ansible
+         drawio[ansible]["label"]=ansible
          drawio[ansible]["type"]="ansible"
          drawio[ansible]["stage"]=""
          drawio[ansible]["terraform"]=""
@@ -230,6 +237,7 @@ def composeLine(name, drawio):
     image =IMAGE[drawio[name]["type"]]
 
     line =       drawio[name]["name"] + \
+         ","   + drawio[name]["label"] + \
          ","   + drawio[name]["type"] + \
          ","   + drawio[name]["stage"] + \
          ",\"" + drawio[name]["terraform"] + "\"" + \

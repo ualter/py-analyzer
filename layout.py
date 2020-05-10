@@ -6,8 +6,10 @@ connect: {"from": "ansible",   "to": "name",                 "style": "curved=1;
 # Node label with placeholders and HTML.
 # Default is '%name_of_first_column%'.
 
-# label: %name%<br><i style="color:gray;">%type%</i><br><a href="mailto:%email%">Email</a>
-label: %name%<br><i style="color:gray;">%type%</i>
+# label: %label%<br><i style="color:gray;">%type%</i><br><a href="mailto:%email%">Email</a>
+# label: %label%<br><i style="color:gray;">%type%</i>
+label: %label%<br>(%name%)<br><i style="color:gray;">%type%</i>
+
 
 
 # Node style (placeholders are replaced once).

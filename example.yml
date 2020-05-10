@@ -1,0 +1,550 @@
+# https://docs.gitlab.com/ee/ci/docker/using_docker_images.html
+image: 659915611011.dkr.ecr.eu-central-1.amazonaws.com/gitlab/runner:e76501eb
+
+stages:
+  - terraform-plan-destroy
+  - terraform
+  - deploy
+
+#   _____  ________      ________ _      ____  _____
+#  |  __ \|  ____\ \    / /  ____| |    / __ \|  __ \
+#  | |  | | |__   \ \  / /| |__  | |   | |  | | |__) |
+#  | |  | |  __|   \ \/ / |  __| | |   | |  | |  ___/
+#  | |__| | |____   \  /  | |____| |___| |__| | |
+#  |_____/|______|   \/   |______|______\____/|_|
+
+
+
+# build-plan:
+#   stage: terraform-plan-destroy
+#   only:
+#     - develop
+#   except:
+#     refs:
+#       - merge_requests
+#       - tags
+#     changes:
+#       - "*.md"
+#       - ".gitignore"
+#       - "docs/*"
+#   tags:
+#     - admin
+#     - shared
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+#     - export USER=$(urlencode "${GIT_USER}")
+#     - export PASS=$(urlencode "${GIT_PASS}")
+#     - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+#     - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+#     - make -e init
+#     - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+#   artifacts:
+#     name: "terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan"
+#     paths:
+#     - terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+#     expire_in: 2h
+
+# build-infra:
+#   stage: terraform
+#   only:
+#     - develop
+#   except:
+#     refs:
+#       - merge_requests
+#       - tags
+#     changes:
+#       - "*.md"
+#       - ".gitignore"
+#       - "docs/*"
+#   tags:
+#     - admin
+#     - shared
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+#     - export USER=$(urlencode "${GIT_USER}")
+#     - export PASS=$(urlencode "${GIT_PASS}")
+#     - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+#     - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+#     - make -e init
+#     - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+#     - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+
+
+# deploy-services:
+#   stage: deploy
+#   only:
+#     - develop
+#   except:
+#     refs:
+#       - merge_requests
+#       - tags
+#     changes:
+#       - "*.md"
+#       - ".gitignore"
+#       - "docs/*"
+#   when: manual
+#   allow_failure: false
+#   tags:
+#     - admin
+#     - shared
+#   environment:
+#     name: ${CI_COMMIT_REF_NAME}
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+#     - export USER=$(urlencode "${GIT_USER}")
+#     - export PASS=$(urlencode "${GIT_PASS}")
+#     - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+#     - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+#     - mkdir ${HOME}/.ssh/
+#     - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+#     - chmod 0600 ${HOME}/.ssh/id_rsa
+#     - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+#     - export PROJECT="services"
+#     - make -e run_playbook_services
+
+# deploy-mysql:
+#   stage: deploy
+#   only:
+#     - develop
+#   except:
+#     refs:
+#       - merge_requests
+#       - tags
+#     changes:
+#       - "*.md"
+#       - ".gitignore"
+#       - "docs/*"
+#   when: manual
+#   allow_failure: false
+#   tags:
+#     - admin
+#     - shared
+#   environment:
+#     name: ${CI_COMMIT_REF_NAME}
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+#     - export USER=$(urlencode "${GIT_USER}")
+#     - export PASS=$(urlencode "${GIT_PASS}")
+#     - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+#     - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+#     - mkdir ${HOME}/.ssh/
+#     - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+#     - chmod 0600 ${HOME}/.ssh/id_rsa
+#     - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+#     - export PROJECT="services"
+#     - make -e run_playbook_mysql
+
+
+# destroy-develop:
+#   stage: terraform-plan-destroy
+#   only:
+#     - develop
+#   except:
+#     refs:
+#       - merge_requests
+#       - tags
+#     changes:
+#       - "*.md"
+#       - ".gitignore"
+#       - "docs/*"
+#   when: manual
+#   tags:
+#     - admin
+#     - shared
+#   script:
+#     - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+#     - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+#     - export USER=$(urlencode "${GIT_USER}")
+#     - export PASS=$(urlencode "${GIT_PASS}")
+#     - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+#     - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+#     - make -e init
+#     - make -e destroy
+
+#   _    _      _______
+#  | |  | |  /\|__   __|
+#  | |  | | /  \  | |
+#  | |  | |/ /\ \ | |
+#  | |__| / ____ \| |
+#   \____/_/    \_\_|
+
+
+build-plan:
+  stage: terraform-plan-destroy
+  only:
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  artifacts:
+    name: "terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan"
+    paths:
+    - terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    expire_in: 2h
+
+build-infra:
+  stage: terraform
+  only:
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+
+
+deploy-services:
+  stage: deploy
+  only:
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - export PROJECT="services"
+    - make -e run_playbook_services
+
+deploy-mysql:
+  stage: deploy
+  only:
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - export PROJECT="services"
+    - make -e run_playbook_mysql
+
+destroy-uat:
+  stage: terraform-plan-destroy
+  only:
+    - uat
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e destroy
+
+
+
+
+#    _  (`-')   (`-')            _(`-')                        (`-')      _                <-. (`-')_
+#    \-.(OO )<-.(OO )      .->  ( (OO ).->     .->    _        ( OO).->  (_)         .->      \( OO) )
+#    _.'    \,------,)(`-')----. \    .'_ ,--.(,--.   \-,-----./    '._  ,-(`-')(`-')----. ,--./ ,--/
+#   (_...--''|   /`. '( OO).-.  ''`'-..__)|  | |(`-')  |  .--./|'--...__)| ( OO)( OO).-.  '|   \ |  |
+#   |  |_.' ||  |_.' |( _) | |  ||  |  ' ||  | |(OO ) /_) (`-')`--.  .--'|  |  )( _) | |  ||  . '|  |)
+#   |  .___.'|  .   .' \|  |)|  ||  |  / :|  | | |  \ ||  |OO )   |  |  (|  |_/  \|  |)|  ||  |\    |
+#   |  |     |  |\  \   '  '-'  '|  '-'  /\  '-'(_ .'(_'  '--'\   |  |   |  |'->  '  '-'  '|  | \   |
+#   `--'     `--' '--'   `-----' `------'  `-----'      `-----'   `--'   `--'      `-----' `--'  `--'
+
+# -----------------> PRODUCTION CI/CD SETUP WITH MANUAL APPROVALS <-----------------------------------
+
+
+build-plan:
+  stage: terraform-plan-destroy
+  only:
+    - prod
+    - pp
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e plan PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  artifacts:
+    name: "terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan"
+    paths:
+    - terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    expire_in: 2h
+
+build-prod:
+  stage: terraform
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - ls -l terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  dependencies:
+    - build-plan
+
+build-pre-prod:
+  stage: terraform
+  only:
+    - pp
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - ls -l terraform/terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+    - make -e apply PLAN=terraform-${CI_PROJECT_ID}-${CI_PIPELINE_ID}.tfplan
+  dependencies:
+    - build-plan
+
+destroy-prod:
+  stage: terraform-plan-destroy
+  only:
+    - prod
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e destroy
+
+destroy-pre-prod:
+  stage: terraform-plan-destroy
+  only:
+    - pp
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  tags:
+    - admin
+    - shared
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - make -e init
+    - make -e destroy
+
+deploy-services-prod:
+  stage: deploy
+  only:
+    - prod
+    - pp
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - export PROJECT="services-pci"
+    - make -e run_playbook_services
+
+deploy-mysql-prod:
+  stage: deploy
+  only:
+    - prod
+    - pp
+  except:
+    refs:
+      - merge_requests
+      - tags
+    changes:
+      - "*.md"
+      - ".gitignore"
+      - "docs/*"
+  when: manual
+  allow_failure: false
+  tags:
+    - admin
+    - shared
+  environment:
+    name: ${CI_COMMIT_REF_NAME}
+  script:
+    - export ENVIRONMENT=${CI_COMMIT_REF_NAME}
+    - export GIT_CRED_FILE="${HOME}/.gitcredentials"
+    - export USER=$(urlencode "${GIT_USER}")
+    - export PASS=$(urlencode "${GIT_PASS}")
+    - git config --global credential.helper "store --file ${GIT_CRED_FILE}"
+    - echo "https://${USER}:${PASS}@git-codecommit.eu-central-1.amazonaws.com" > ${GIT_CRED_FILE}
+    - mkdir ${HOME}/.ssh/
+    - echo ${ANSIBLE_SSH_PRV} |base64 -d > ${HOME}/.ssh/id_rsa
+    - chmod 0600 ${HOME}/.ssh/id_rsa
+    - echo ${ANSIBLE_SSH_PUB} |base64 -d > ${HOME}/.ssh/id_rsa.pub
+    - export PROJECT="services-pci"
+    - make -e run_playbook_mysql
