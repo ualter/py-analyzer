@@ -45,7 +45,7 @@ PLAYBOOKS["make -e run_playbook_services"]  ="deploy-services.yaml"
 HEADER="id,name,type,stage,when,terraform,branch,ansible,fill,stroke,image"
 
 LOG = logging.getLogger("app." + __name__)
-LOG.setLevel(logging.WARN)
+LOG.setLevel(logging.INFO)
 
 def startAnalysis(gitlabFile):
     print("\n**************************************************************************************")
@@ -59,7 +59,9 @@ def startAnalysis(gitlabFile):
     print("\n**************************************************************************************")
     print(" ")
     loadYaml(gitlabFile)
-    print (" ----> Done!")
+    print ("\n ----------")
+    print (" ---> Done!")
+    print (" ----------")
     print("\n**************************************************************************************\n")
 
 def loadYaml(gitlabFile):
@@ -87,7 +89,7 @@ def loadYaml(gitlabFile):
                 else:    
                     drawio[id_job]["when"]=""
 
-                logging.info("  - Parsing Job " + id_job + " (Stage " + drawio[id_job]["stage"] + ")")
+                LOG.info("  - Parsing Job " + id_job + " (Stage " + drawio[id_job]["stage"] + ")")
 
                 # Terraform Commands
                 loadTerraformCommands(id_job, drawio, item, doc)
@@ -103,7 +105,7 @@ def loadYaml(gitlabFile):
 
 def loadStages(drawio, doc):
       for stage in doc:
-         logging.info("  - Parsing Stage " + stage)
+         LOG.info("  - Parsing Stage " + stage)
          drawio[stage]={}
          drawio[stage]["id"]="stage-" + stage
          drawio[stage]["name"]=stage
@@ -235,7 +237,7 @@ def completeWihRelationShips(drawio):
 
 
 def writeFile(drawio, gitlabFile):
-   logging.info("- CVS Writing...")
+   LOG.info("- CVS Writing...")
    fileName=gitlabFile.replace(".yaml","").replace(".yml","") + ".csv"
    fileNameNoLayout=gitlabFile.replace(".yaml","").replace(".yml","")+"-nolayout.csv"
 
@@ -256,7 +258,7 @@ def writeFile(drawio, gitlabFile):
        fnl.write(line + "\n")
 
    f.close()
-   logging.info("- CVS File writen")
+   LOG.info("- CVS File writen")
 
 def composeLine(name, drawio):
     fill   = FILL  [drawio[name]["type"]]
