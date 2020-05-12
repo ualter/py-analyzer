@@ -49,8 +49,10 @@ class GitLab:
       LOG = logging.getLogger("app." + __name__)
       LOG.setLevel(logging.INFO)
 
-      #def __init__(self):
+      color = False
 
+      def __init__(self, color):
+         self.color = color
 
       def startAnalysis(self, gitlabFile):
          print("\n**************************************************************************************")
@@ -288,10 +290,16 @@ class GitLab:
          return line
 
       def writeLayoutHeader(self, f):
-         f.write("#" + "connect: {\"from\": \"stage\",     \"to\": \"id\", \"invert\": true, \"style\": \"curved=1;fontSize=11;\"}\n")
-         f.write("#" + "connect: {\"from\": \"terraform\", \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
-         f.write("#" + "connect: {\"from\": \"branch\",    \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
-         f.write("#" + "connect: {\"from\": \"ansible\",   \"to\": \"id\",                 \"style\": \"curved=1;fontSize=11;\"}\n")
+         if self.color:
+            f.write("#" + "connect: {\"from\": \"stage\",     \"to\": \"id\", \"invert\": true, \"style\": \"curved=1;fontSize=11;strokeColor=#000000;\"}\n")
+            f.write("#" + "connect: {\"from\": \"terraform\", \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;strokeColor=#0000FF;\"}\n")
+            f.write("#" + "connect: {\"from\": \"branch\",    \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;strokeColor=#60BF00;\"}\n")
+            f.write("#" + "connect: {\"from\": \"ansible\",   \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;strokeColor=#A0522D;\"}\n")
+         else:   
+            f.write("#" + "connect: {\"from\": \"stage\",     \"to\": \"id\", \"invert\": true, \"style\": \"curved=1;fontSize=11;\"}\n")
+            f.write("#" + "connect: {\"from\": \"terraform\", \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;\"}\n")
+            f.write("#" + "connect: {\"from\": \"branch\",    \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;\"}\n")
+            f.write("#" + "connect: {\"from\": \"ansible\",   \"to\": \"id\",                   \"style\": \"curved=1;fontSize=11;\"}\n")
          f.write("#" + "# Node label with placeholders and HTML.\n")
          f.write("#" + "# Default is '%name_of_first_column%'.\n")
          f.write("#" + "# label: %label%<br><i style=\"color:gray;\">%type%</i><br><a href=\"mailto:%email%\">Email</a>\n")
