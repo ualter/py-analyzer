@@ -3,13 +3,13 @@ setup(
   name = 'pyzer',         
   packages = ['pyzer'],   
   scripts=['scripts/pyzer'],
-  version = '0.4',      
+  version = '0.5',      
   license='MIT',        
   description = 'Simple analyzer for some standard files, creating visual graphs from them',
   author = 'Ualter Azambuja Junior',                   
   author_email = 'ualter.junior@gmail.com',      
   url = 'https://github.com/ualter/py-analyzer',   
-  download_url = 'https://github.com/ualter/py-analyzer/archive/v0_4.tar.gz',    
+  download_url = 'https://github.com/ualter/py-analyzer/archive/v0_5.tar.gz',    
   keywords = ['ANALYSIS', 'GRAPH', 'DRAWIO', 'CSV'],   
   install_requires=[            
           'PyYAML'

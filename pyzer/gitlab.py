@@ -213,7 +213,7 @@ class GitLab:
             for terra in listTerraformCommands:
                   drawio[terra]={}
                   drawio[terra]["id"]=terra
-                  drawio[terra]["name"]=terra
+                  drawio[terra]["name"]=terra.replace("terraform-","")
                   drawio[terra]["type"]="terraform"
                   drawio[terra]["stage"]=""
                   drawio[terra]["when"]=""
@@ -224,7 +224,7 @@ class GitLab:
             for git in listGitBranches:
                drawio[git]={}
                drawio[git]["id"]=git
-               drawio[git]["name"]=git
+               drawio[git]["name"]=git.replace("git-","")
                drawio[git]["type"]="branch"
                drawio[git]["stage"]=""
                drawio[git]["when"]=""
@@ -235,7 +235,7 @@ class GitLab:
             for ansible in listAnsiblePlaybook:
                drawio[ansible]={}
                drawio[ansible]["id"]=ansible
-               drawio[ansible]["name"]=ansible
+               drawio[ansible]["name"]=ansible.replace("ansible-","")
                drawio[ansible]["type"]="ansible"
                drawio[ansible]["stage"]=""
                drawio[ansible]["when"]=""
